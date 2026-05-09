@@ -1,5 +1,7 @@
 # GitHub Actions 测试工作流
 # 每次推送到 main 分支或创建 Pull Request 时自动运行
+# 
+# 注意：只做静态代码检查，不调用任何外部 API
 
 name: CI - 自动化测试
 
@@ -30,31 +32,51 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # 步骤 4: 测试核心模块导入（添加下载目录到 PYTHONPATH）
-    - name: 🔧 测试核心模块导入
-      working-directory: ./download_and_send
+    # 步骤 4: 语法检查（编译所有 Python 文件）
+    - name: 🔍 Python 语法检查
       run: |
-        echo "Testing config.py..."
-        python -c "from config import PEXELS_API_KEY; print('config.py OK')"
+        echo "Checking Python syntax..."
+        python -m py_compile download_pictures.py
+        python -m py_compile download_video_from_pexels.py
+        python -m py_compile email_extend.py
+        python -m py_compile send_email_.py
+        python -m py_compile send_email_pictures_from_pexels.py
+        python -m py_compile send_my_email.py
+        python -m py_compile download_from_pexels.py
+        python -m py_compile test_setup.py
         
-        echo "Testing download_pictures_and_videos.py..."
-        python -c "from download_pictures_and_videos import get_popular_photos; print('download_pictures_and_videos.py OK')"
+        cd download_and_send
+        python -m py_compile config.py
+        python -m py_compile download_pictures_and_videos.py
+        python -m py_compile send_email.py
+        python -m py_compile main.py
+        python -m py_compile __init__.py
         
-        echo "Testing send_email.py..."
-        python -c "from send_email import send_email; print('send_email.py OK')"
+        echo "All Python files passed syntax check!"
       shell: cmd
 
-    # 步骤 5: 测试独立脚本导入
-    - name: 📜 测试独立脚本导入
+    # 步骤 5: 导入测试（仅加载模块，不执行主代码）
+    - name: 🧩 模块导入测试
+      env:
+        # 设置占位符环境变量，避免配置缺失导致导入失败
+        PEXELS_API_KEY: "test_key"
+        EMAIL_SENDER: "test@test.com"
+        EMAIL_PASSWORD: "test_password"
       run: |
-        echo "Testing download_pictures.py..."
-        python -c "import download_pictures; print('download_pictures.py OK')"
+        echo "Testing module imports (without executing main code)..."
         
-        echo "Testing download_video_from_pexels.py..."
-        python -c "import download_video_from_pexels; print('download_video_from_pexels.py OK')"
+        # 测试独立脚本（这些脚本在 import 时不会自动执行）
+        python -c "import download_pictures; print('✓ download_pictures.py')"
+        python -c "import download_video_from_pexels; print('✓ download_video_from_pexels.py')"
+        python -c "import email_extend; print('✓ email_extend.py')"
         
-        echo "Testing email_extend.py..."
-        python -c "import email_extend; print('email_extend.py OK')"
+        # 测试 download_and_send 模块
+        cd download_and_send
+        python -c "import config; print('✓ config.py')"
+        python -c "import download_pictures_and_videos; print('✓ download_pictures_and_videos.py')"
+        python -c "import send_email; print('✓ send_email.py')"
+        
+        echo "All modules imported successfully!"
       shell: cmd
 
     # 步骤 6: 输出测试总结
@@ -62,5 +84,7 @@ jobs:
       run: |
         echo "=========================================="
         echo "🎉 所有自动化测试完成！"
+        echo "   - 语法检查：通过"
+        echo "   - 模块导入：通过"
         echo "=========================================="
       shell: cmd
