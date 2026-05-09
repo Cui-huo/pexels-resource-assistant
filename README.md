@@ -52,6 +52,18 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## 🔧 验证安装
+
+在开始使用前，运行测试脚本确认环境配置正确：
+
+```bash
+python test_setup.py
+```
+
+✅ 所有测试通过后，即可正常使用主程序。
+
+---
+
 ## ⚙️ 配置
 
 ### 1. 复制环境变量模板
