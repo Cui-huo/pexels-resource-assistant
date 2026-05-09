@@ -5,15 +5,19 @@ Author: 仗剑天涯
 Date: 2026/4/18
 Description:
     使用 Pexels 官方 API 搜索并下载指定数量的女性图片到桌面。
-    需要提供有效的 Pexels API Key。
+    需要提供有效的 Pexels API Key（从 config.py 导入）。
 """
 
 import os
+import sys
 import requests
 from pathlib import Path
 
+# 添加项目根目录到路径，以便导入 config
+sys.path.insert(0, str(Path(__file__).parent / 'download_and_send'))
+from config import PEXELS_API_KEY
+
 # ==================== 配置区域 ====================
-API_KEY = "gH0PMN2NOO6vJuLGK6x3WhKa5H2As3ww9wr5ovGhxLrS0efspR6NmuHv"  # 你的 Pexels API 密钥
 QUERY = "woman"          # 搜索关键词
 COUNT = 2                # 需要下载的图片数量
 # =================================================
@@ -25,14 +29,14 @@ def search_pexels_images(query: str, per_page: int = 10) -> list:
 
     Args:
         query: 搜索关键词
-        per_page: 每页返回的图片数量（默认10，最大80）
+        per_page: 每页返回的图片数量（默认 10，最大 80）
 
     Returns:
         包含图片信息的列表，每个元素为 dict
     """
     url = "https://api.pexels.com/v1/search"
     headers = {
-        "Authorization": API_KEY  # API 认证头
+        "Authorization": PEXELS_API_KEY  # API 认证头从 config.py 导入
     }
     params = {
         "query": query,
@@ -45,7 +49,7 @@ def search_pexels_images(query: str, per_page: int = 10) -> list:
         data = response.json()
         return data.get("photos", [])
     except requests.exceptions.RequestException as e:
-        print(f"❌ API 请求失败: {e}")
+        print(f"❌ API 请求失败：{e}")
         return []
 
 
@@ -69,7 +73,7 @@ def download_image(image_url: str, save_path: Path) -> bool:
         with open(save_path, "wb") as f:
             f.write(img_response.content)
 
-        print(f"✅ 已保存: {save_path.name}")
+        print(f"✅ 已保存：{save_path.name}")
         return True
 
     except Exception as e:

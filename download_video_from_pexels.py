@@ -1,12 +1,12 @@
 """
-download_video_from_pexels - 
-从pexels上下载热门视频、关键词搜索视频
+download_video_from_pexels -
+从 pexels 上下载热门视频、关键词搜索视频
 
 功能：从 Pexels 平台自动下载热门视频到本地项目文件夹
 
 使用方法：
-1. 将 YOUR_PEXELS_API_KEY 替换为你自己的 Pexels API 密钥
-2. 运行脚本，第一个热门视频将被下载到当前目录下的 videos 文件夹中
+1. 在 download_and_send/config.py 中配置 PEXELS_API_KEY
+2. 运行脚本，视频将下载到当前目录下的 videos 文件夹中
 
 Author:仗剑天涯
 Date:2026/4/19
@@ -18,12 +18,12 @@ from pprint import pprint
 import requests
 from pathlib import Path
 
+# 添加项目根目录到路径，以便导入 config
+import sys
+sys.path.insert(0, str(Path(__file__).parent / 'download_and_send'))
+from config import PEXELS_API_KEY
 
 # ==================== 配置区域 ====================
-# 请在此处填入你的 Pexels API 密钥
-# 获取方式：登录 Pexels 官网 -> API 页面 -> 申请/查看 API Key
-PEXELS_API_KEY = "gH0PMN2NOO6vJuLGK6x3WhKa5H2As3ww9wr5ovGhxLrS0efspR6NmuHv"
-
 # 视频保存目录（默认为当前脚本所在目录下的 videos 文件夹）
 SAVE_DIR = Path(__file__).parent / "videos"
 # =================================================
@@ -54,7 +54,7 @@ def get_videos(url, search_query, api_key: str, per_page: int = 10) -> list:
         data = response.json()
         return data.get("videos", [])
     except requests.exceptions.RequestException as e:
-        print(f"❌ 获取热门视频失败: {e}")
+        print(f"❌ 获取热门视频失败：{e}")
         return []
 
 
@@ -80,7 +80,7 @@ def download_video(video_url: str, save_path: Path) -> bool:
                 if chunk:
                     f.write(chunk)
 
-        print(f"✅ 视频已保存: {save_path.name}")
+        print(f"✅ 视频已保存：{save_path.name}")
         return True
 
     except Exception as e:
@@ -119,28 +119,28 @@ def select_video_file(video_info: dict) -> dict | None:
 def main():
     while True:
         search_query = ''
-        # API访问接口
+        # API 访问接口
         url = "https://api.pexels.com/v1/videos/popular"
         url2 = "https://api.pexels.com/v1/videos/search"
         # 实现自己选择可用功能
-        num = int(input('1、获取热门视频\n2、关键词搜索视频\n请选择功能（数据均从pexels上获取）：'))
+        num = int(input('1、获取热门视频\n2、关键词搜索视频\n请选择功能（数据均从 pexels 上获取）：'))
 
         # 下载视频的数量（建议设为 1，避免一次下载过多）
         download_count = int(input('下载视频数：'))
         if num == 2:
             url = url2
             # 搜索关键词
-            search_query = input('请输入搜索关键词(中英文均可)：')
+            search_query = input('请输入搜索关键词 (中英文均可)：')
         """主函数：获取热门视频并下载到本地"""
         # 1. 检查 API 密钥是否已配置
-        if PEXELS_API_KEY == "YOUR_PEXELS_API_KEY":
-            print("⚠️ 请先在代码中填入你的 Pexels API 密钥（替换 YOUR_PEXELS_API_KEY）")
+        if PEXELS_API_KEY == "YOUR_PEXELS_API_KEY_HERE":
+            print("⚠️ 请先在 download_and_send/config.py 或 .env 文件中配置你的 Pexels API 密钥")
             print("获取方式：登录 https://www.pexels.com/api/ 申请")
             return
 
         # 2. 创建保存目录（如果不存在）
         SAVE_DIR.mkdir(parents=True, exist_ok=True)
-        print(f"📁 视频将保存至: {SAVE_DIR.absolute()}")
+        print(f"📁 视频将保存至：{SAVE_DIR.absolute()}")
 
         # 3. 获取热门视频列表
         print("🔍 正在获取 Pexels 热门视频...")

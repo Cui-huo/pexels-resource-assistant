@@ -1,29 +1,38 @@
 """
-download_from_pexels - 
+download_from_pexels -
 用我自己的账号密钥，获取图片或者视频数据
-（我人生的第一个正式API调用脚本）
-Author:仗剑天涯
+（我人生的第一个正式 API 调用脚本）
+Author: 仗剑天涯
 Date:2026/4/16
+
+注意：API 密钥从 download_and_send/config.py 导入，请勿硬编码
 """
-import os.path
+import os
+import sys
+from pathlib import Path
 from pprint import pprint
 
 import requests
 
+# 添加项目根目录到路径，以便导入 config
+sys.path.insert(0, str(Path(__file__).parent / 'download_and_send'))
+from config import PEXELS_API_KEY
+
+
 def download_one_picture(url, path, index):
     try:
-        # 根据url获取对象，写入文件
+        # 根据 url 获取对象，写入文件
         response = requests.get(url, timeout=30)
         # 检查状态码是否异常
         response.raise_for_status()
         try:
-            # 用split函数把字符串分割成列表，取第一个元素为文件名
+            # 用 split 函数把字符串分割成列表，取第一个元素为文件名
             filename = url[url.rfind('/') + 1:].split('?')[0]
             if not filename:
                 raise ValueError
         except:
             filename = f"image_{index}.jpg"
-            print(f'从url获取文件名{filename}异常')
+            print(f'从 url 获取文件名{filename}异常')
         # 检查存储路径，如果没有则创建
         if not os.path.exists(path):
             os.makedirs(path)
@@ -39,38 +48,44 @@ def download_one_picture(url, path, index):
 
 
 def main():
-    # API调用信息（需提前准备）
-    API_KEY = "gH0PMN2NOO6vJuLGK6x3WhKa5H2As3ww9wr5ovGhxLrS0efspR6NmuHv"
-    headers = {'Authorization': API_KEY}
+    # API 调用信息（从 config.py 导入）
+    headers = {'Authorization': PEXELS_API_KEY}
     url = "https://api.pexels.com/v1/search"
+    
+    # 检查 API 密钥是否已配置
+    if PEXELS_API_KEY == "YOUR_PEXELS_API_KEY_HERE":
+        print("⚠️ 请先在 download_and_send/config.py 或 .env 文件中配置你的 Pexels API 密钥")
+        print("获取方式：登录 https://www.pexels.com/api/ 申请")
+        return
+    
     # 3. 设置搜索参数
     params = {
         "query": "beautiful girls",  # 搜索关键词（必填）
-        "per_page": 30,  # 每页数量，默认15，最大80
-        "page": 2  # 页码，默认1
+        "per_page": 30,  # 每页数量，默认 15，最大 80
+        "page": 2  # 页码，默认 1
     }
     # 从官方接口调用数据
     responses = requests.get(url, headers=headers, params=params, timeout=300)
     # 检查状态码
     responses.raise_for_status()
-    # 把json数据转化为字典data
+    # 把 json 数据转化为字典 data
     data = responses.json()
     # Python 内置模块，专门用于美化打印 Python 对象。
     # indent=2：缩进空格数。width=80：每行最大宽度，超过会自动换行。
     pprint(data, indent=2, width=80)
 
-    # 从data字典中解析数据
+    # 从 data 字典中解析数据
     photos_list = data['photos']
     counter = 0
     counter2 = 0
-    # 遍历取photo_dict对象
+    # 遍历取 photo_dict 对象
     for index, photo_dict in enumerate(photos_list):
         # 安全获取中等尺寸图片 URL
         url = photo_dict.get('src', {}).get('medium')
         if not url:
             print(f"第 {index + 1} 张图片缺少 medium URL，跳过")
             continue
-        # 获取图片数据-不够安全（字段缺失时会异常）
+        # 获取图片数据 - 不够安全（字段缺失时会异常）
         # url = photo_dict['src']['medium']
 
         path = 'download_pictures/pexel'
@@ -83,11 +98,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-
