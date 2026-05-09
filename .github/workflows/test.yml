@@ -9,10 +9,13 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  CI_MODE: '1'  # 启用 CI 模式，只测试代码导入，不测试配置有效性
+
 jobs:
   test:
     runs-on: windows-latest
-    
+
     steps:
     # 步骤 1: 检出代码
     - name: 📥 检出代码
@@ -30,39 +33,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # 步骤 4: 创建测试配置文件
-    - name: ⚙️ 创建测试配置
-      run: |
-        copy .env.example .env
-      shell: cmd
-
-    # 步骤 5: 运行环境测试脚本
+    # 步骤 4: 运行环境测试脚本（CI 模式）
     - name: 🧪 运行环境测试
       run: |
         python test_setup.py
       shell: cmd
-      continue-on-error: true  # 配置验证可能失败（因为使用占位值），但不阻止后续步骤
 
-    # 步骤 6: 测试核心模块导入
-    - name: 🔧 测试核心模块导入
-      run: |
-        echo "测试 download_and_send 模块..."
-        python -c "from download_and_send.config import PEXELS_API_KEY; print('config.py OK')"
-        python -c "from download_and_send.download_pictures_and_videos import get_popular_photos; print('download_pictures_and_videos.py OK')"
-        python -c "from download_and_send.send_email import send_email; print('send_email.py OK')"
-        python -c "from download_and_send.main import main; print('main.py OK')"
-      shell: cmd
-
-    # 步骤 7: 测试独立脚本导入
-    - name: 📜 测试独立脚本导入
-      run: |
-        echo "测试独立脚本..."
-        python -c "import download_pictures; print('download_pictures.py OK')"
-        python -c "import download_video_from_pexels; print('download_video_from_pexels.py OK')"
-        python -c "import email_extend; print('email_extend.py OK')"
-      shell: cmd
-
-    # 步骤 8: 输出测试总结
+    # 步骤 5: 输出测试总结
     - name: ✅ 测试完成
       run: |
         echo "=========================================="
