@@ -1,13 +1,13 @@
 """
 send_email_pictures_from_pexels -
 实现功能：
-从 pexels 中下载 2 个图片，发送给 1414829065@qq.com-已实现
-同时发送 2 种可选正文，发送内嵌图片，发送附件 - 已实现
+从 pexels 中下载 2 个图片，发送给指定收件人
+同时发送 2 种可选正文，发送内嵌图片，发送附件
 
 Author: 仗剑天涯
 Date:2026/4/19
 
-注意：API 密钥和邮箱配置从 download_and_send/config.py 导入，请勿硬编码
+注意：API 密钥和邮箱配置从 .env 文件读取
 """
 
 import os
@@ -22,11 +22,11 @@ from email.mime.text import MIMEText
 from email.utils import formataddr
 from urllib.parse import quote
 
-# 添加项目根目录到路径，以便导入 config
-sys.path.insert(0, str(Path(__file__).parent / 'download_and_send'))
-from config import PEXELS_API_KEY, EMAIL_SENDER, EMAIL_PASSWORD, SMTP_SERVER, SMTP_PORT, DEFAULT_RECEIVER
+from utils.config_helper import get_pexels_api_key, get_email_config
 
 # ==================== 配置区域 ====================
+PEXELS_API_KEY = get_pexels_api_key()
+EMAIL_CONFIG = get_email_config()
 QUERY = "woman"          # 搜索关键词
 COUNT = 2                # 需要下载的图片数量
 # =================================================
@@ -61,7 +61,7 @@ def search_pexels_images(query: str, per_page: int = 10) -> list:
     """
     url = "https://api.pexels.com/v1/search"
     headers = {
-        "Authorization": PEXELS_API_KEY  # API 认证头从 config.py 导入
+        "Authorization": PEXELS_API_KEY
     }
     params = {
         "query": query,
@@ -70,8 +70,8 @@ def search_pexels_images(query: str, per_page: int = 10) -> list:
 
     try:
         response = requests.get(url, headers=headers, params=params, timeout=15)
-        response.raise_for_status()  # 如果状态码不是 200，抛出异常
-        data = response.json()# type:dict
+        response.raise_for_status()
+        data = response.json()
         return data.get("photos", [])
     except requests.exceptions.RequestException as e:
         print(f"❌ API 请求失败：{e}")
@@ -90,11 +90,9 @@ def download_image(image_url: str, save_path: Path) -> bool:
         下载成功返回 True，否则返回 False
     """
     try:
-        # 发送 GET 请求下载图片内容
         img_response = requests.get(image_url, timeout=20)
         img_response.raise_for_status()
 
-        # 以二进制写入文件
         with open(save_path, "wb") as f:
             f.write(img_response.content)
 
@@ -108,17 +106,26 @@ def download_image(image_url: str, save_path: Path) -> bool:
 
 def main():
     """主函数：搜索图片并下载到桌面"""
+    # 检查 API 密钥是否已配置
+    if PEXELS_API_KEY == "YOUR_PEXELS_API_KEY_HERE":
+        print("⚠️ 请先复制 .env.example 为 .env 并填写你的 Pexels API 密钥")
+        return
+    
+    # 检查邮箱配置
+    if EMAIL_CONFIG['sender'] == "your_email@163.com":
+        print("⚠️ 请先在 .env 文件中配置你的邮箱信息")
+        return
+
     # 1. 确定桌面路径（兼容 Windows / macOS / Linux）
     desktop = Path.home() / "Desktop"
     if not desktop.exists():
-        # 如果系统是中文版 Windows，桌面可能在 "桌面" 文件夹下
         desktop = Path.home() / "桌面"
     if not desktop.exists():
         print("❌ 无法定位桌面路径，请手动指定保存目录。")
         return
 
     print(f"🔍 正在 Pexels 搜索关键词 '{QUERY}' ...")
-    photos = search_pexels_images(QUERY, per_page=COUNT * 2)  # 多搜一些，以防有的图片无效
+    photos = search_pexels_images(QUERY, per_page=COUNT * 2)
 
     if not photos:
         print("❌ 未搜索到任何图片，请检查网络或 API 密钥是否有效。")
@@ -132,16 +139,14 @@ def main():
         if downloaded >= COUNT:
             break
 
-        # Pexels 返回的图片 URL 有多种尺寸，优先选择高质量的原图或大图
-        src_info = photo.get("src", {})# type:dict
+        src_info = photo.get("src", {})
         img_url = src_info.get("original") or src_info.get("large2x") or src_info.get("large")
 
         if not img_url:
             print(f"⚠️ 第 {i+1} 张图片缺少有效 URL，跳过。")
             continue
 
-        # 根据 URL 推断文件扩展名
-        ext = ".jpg"  # Pexels 图片多为 jpg
+        ext = ".jpg"
         if ".png" in img_url.lower():
             ext = ".png"
 
@@ -155,61 +160,41 @@ def main():
 
     print(f"\n🎉 完成！共成功下载 {downloaded} 张图片到桌面：{desktop}")
 
+    sender = EMAIL_CONFIG['sender']
+    receivers = [EMAIL_CONFIG['default_receiver']]
 
-    sender = EMAIL_SENDER  # 发送者从 config.py 导入
-    receivers = [DEFAULT_RECEIVER]  # 接收者从 config.py 导入
-
-    # 创建邮件对象法二
+    # 创建邮件对象
     email = MIMEMultipart('related')
-    # 创建发送者名字 + 地址的邮件显示规范
     email['From'] = formataddr((str(Header('西门吹雪', 'utf-8')), sender))
-    # 创建接受者名字 + 地址的邮件显示规范
     email['To'] = formataddr((str(Header('叶孤城', 'utf-8')), receivers[0]))
-    # 邮件主题
     email['Subject'] = Header('月圆之夜，紫禁之巅，来战！')
 
-    # 创建 alternative 类型对象，
-    # 可选 html 和 TXT 文本展示方式给服务器
     msgAlternative = MIMEMultipart('alternative')
-    # 文本对象添加进 related 类型（可以内嵌图片和文本）
     email.attach(msgAlternative)
-    # HTML 正文
     mail_msg = """
     <p>Python 邮件发送测试...</p>
     <p><a href="http://www.runoob.com">菜鸟教程链接</a></p>
     <p>图片演示：</p>
     <p><img src="cid:image1"></p>
     """
-    # 创建正文对象，并添加给可选正文对象
     msgAlternative.attach(MIMEText(mail_msg, 'html', 'utf-8'))
-    # 指定图片为当前目录
+    
     fp = open('resources/888.png', 'rb')
-    # 创建图片对象
     msgImage = MIMEImage(fp.read())
     fp.close()
-    # 定义图片 ID，value 的值要和 HTML 中 cid 值相同
     msgImage.add_header('Content-ID', '<image1>')
-    # 图片对象添加进可内嵌图片类型的邮件容器
     email.attach(msgImage)
-    # 创建 xlsx 附件
+    
     email.attach(creat_attachment('', '一年级二班考试成绩表 2.xlsx'))
-    # 创建 docx 附件
     email.attach(creat_attachment('', '离职证明 3.docx'))
-    # 创建 ppt 附件
     email.attach(creat_attachment('resources', '演示 PPT.pptx'))
-    # 创建图片附件
     email.attach(creat_attachment('resources', '888.png'))
     email.attach(creat_attachment(path_list[0], name_list[0]))
     email.attach(creat_attachment(path_list[1], name_list[1]))
-    # 创建视频附件
     email.attach(creat_attachment('resources', 'pexels_video_1409899_Michal Marek.mp4'))
 
-    # 创建 smtp 对象，链接服务器和端口
-    smtp_obj = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
-    # smtp_obj = smtplib.SMTP('smtp.163.com', 25)
-    # 登录服务器（从 config.py 导入）
-    smtp_obj.login(EMAIL_SENDER, EMAIL_PASSWORD)
-    # 发送邮件
+    smtp_obj = smtplib.SMTP_SSL(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
+    smtp_obj.login(sender, EMAIL_CONFIG['password'])
     smtp_obj.sendmail(sender, receivers, email.as_string())
 
 

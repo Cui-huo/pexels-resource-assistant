@@ -5,8 +5,9 @@ download_video_from_pexels -
 功能：从 Pexels 平台自动下载热门视频到本地项目文件夹
 
 使用方法：
-1. 在 download_and_send/config.py 中配置 PEXELS_API_KEY
-2. 运行脚本，视频将下载到当前目录下的 videos 文件夹中
+1. 复制 .env.example 为 .env
+2. 在 .env 文件中填入你的 Pexels API Key
+3. 运行脚本，视频将下载到当前目录下的 videos 文件夹中
 
 Author:仗剑天涯
 Date:2026/4/19
@@ -17,15 +18,11 @@ from pprint import pprint
 
 import requests
 from pathlib import Path
-
-# 添加项目根目录到路径，以便导入 config
-import sys
-sys.path.insert(0, str(Path(__file__).parent / 'download_and_send'))
-from config import PEXELS_API_KEY
+from utils.config_helper import get_pexels_api_key, get_download_dir
 
 # ==================== 配置区域 ====================
-# 视频保存目录（默认为当前脚本所在目录下的 videos 文件夹）
-SAVE_DIR = Path(__file__).parent / "videos"
+PEXELS_API_KEY = get_pexels_api_key()  # 从 .env 文件读取
+SAVE_DIR = get_download_dir().parent / "videos"  # videos 目录
 # =================================================
 
 def get_videos(url, search_query, api_key: str, per_page: int = 10) -> list:
@@ -134,7 +131,7 @@ def main():
         """主函数：获取热门视频并下载到本地"""
         # 1. 检查 API 密钥是否已配置
         if PEXELS_API_KEY == "YOUR_PEXELS_API_KEY_HERE":
-            print("⚠️ 请先在 download_and_send/config.py 或 .env 文件中配置你的 Pexels API 密钥")
+            print("⚠️ 请先复制 .env.example 为 .env 并填写你的 Pexels API 密钥")
             print("获取方式：登录 https://www.pexels.com/api/ 申请")
             return
 

@@ -5,19 +5,16 @@ Author: 仗剑天涯
 Date: 2026/4/18
 Description:
     使用 Pexels 官方 API 搜索并下载指定数量的女性图片到桌面。
-    需要提供有效的 Pexels API Key（从 config.py 导入）。
+    需要提供有效的 Pexels API Key。
 """
 
 import os
-import sys
 import requests
 from pathlib import Path
-
-# 添加项目根目录到路径，以便导入 config
-sys.path.insert(0, str(Path(__file__).parent / 'download_and_send'))
-from config import PEXELS_API_KEY
+from utils.config_helper import get_pexels_api_key
 
 # ==================== 配置区域 ====================
+PEXELS_API_KEY = get_pexels_api_key()  # 从 .env 文件读取
 QUERY = "woman"          # 搜索关键词
 COUNT = 2                # 需要下载的图片数量
 # =================================================
@@ -36,7 +33,7 @@ def search_pexels_images(query: str, per_page: int = 10) -> list:
     """
     url = "https://api.pexels.com/v1/search"
     headers = {
-        "Authorization": PEXELS_API_KEY  # API 认证头从 config.py 导入
+        "Authorization": PEXELS_API_KEY  # API 认证头
     }
     params = {
         "query": query,

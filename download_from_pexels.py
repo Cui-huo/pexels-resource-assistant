@@ -2,21 +2,17 @@
 download_from_pexels -
 用我自己的账号密钥，获取图片或者视频数据
 （我人生的第一个正式 API 调用脚本）
+
 Author: 仗剑天涯
 Date:2026/4/16
 
-注意：API 密钥从 download_and_send/config.py 导入，请勿硬编码
+注意：API 密钥从 .env 文件读取，请先复制 .env.example 为 .env 并配置
 """
 import os
-import sys
 from pathlib import Path
 from pprint import pprint
-
 import requests
-
-# 添加项目根目录到路径，以便导入 config
-sys.path.insert(0, str(Path(__file__).parent / 'download_and_send'))
-from config import PEXELS_API_KEY
+from utils.config_helper import get_pexels_api_key, get_output_dir
 
 
 def download_one_picture(url, path, index):
@@ -48,15 +44,17 @@ def download_one_picture(url, path, index):
 
 
 def main():
-    # API 调用信息（从 config.py 导入）
-    headers = {'Authorization': PEXELS_API_KEY}
-    url = "https://api.pexels.com/v1/search"
+    # 从 .env 文件获取 API Key
+    PEXELS_API_KEY = get_pexels_api_key()
     
     # 检查 API 密钥是否已配置
     if PEXELS_API_KEY == "YOUR_PEXELS_API_KEY_HERE":
-        print("⚠️ 请先在 download_and_send/config.py 或 .env 文件中配置你的 Pexels API 密钥")
+        print("⚠️ 请先复制 .env.example 为 .env 并填写你的 Pexels API 密钥")
         print("获取方式：登录 https://www.pexels.com/api/ 申请")
         return
+    
+    headers = {'Authorization': PEXELS_API_KEY}
+    url = "https://api.pexels.com/v1/search"
     
     # 3. 设置搜索参数
     params = {
@@ -85,11 +83,9 @@ def main():
         if not url:
             print(f"第 {index + 1} 张图片缺少 medium URL，跳过")
             continue
-        # 获取图片数据 - 不够安全（字段缺失时会异常）
-        # url = photo_dict['src']['medium']
 
-        path = 'download_pictures/pexel'
-        flag = download_one_picture(url, path, index)
+        path = get_output_dir('download_pictures/pexel')
+        flag = download_one_picture(url, str(path), index)
         if flag:
             counter += 1
         counter2 = index if counter2 < index else counter2
