@@ -9,9 +9,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  CI_MODE: '1'  # 启用 CI 模式，只测试代码导入，不测试配置有效性
-
 jobs:
   test:
     runs-on: windows-latest
@@ -33,15 +30,43 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # 步骤 4: 运行环境测试脚本（CI 模式）
-    - name: 🧪 运行环境测试
+    # 步骤 4: 测试核心模块导入
+    - name: 🔧 测试核心模块导入
       run: |
-        echo "CI_MODE value: $env:CI_MODE"
-        python -c "import os; print('CI_MODE in Python:', os.getenv('CI_MODE'))"
-        $env:CI_MODE='1'; python test_setup.py
-      shell: pwsh
+        echo "Testing config.py..."
+        python -c "from download_and_send.config import PEXELS_API_KEY; print('OK')"
+        
+        echo "Testing download_pictures_and_videos.py..."
+        python -c "from download_and_send.download_pictures_and_videos import get_popular_photos; print('OK')"
+        
+        echo "Testing send_email.py..."
+        python -c "from download_and_send.send_email import send_email; print('OK')"
+        
+        echo "Testing main.py..."
+        python -c "from download_and_send.main import main; print('OK')"
+      shell: cmd
 
-    # 步骤 5: 输出测试总结
+    # 步骤 5: 测试独立脚本导入
+    - name: 📜 测试独立脚本导入
+      run: |
+        echo "Testing download_pictures.py..."
+        python -c "import download_pictures; print('OK')"
+        
+        echo "Testing download_video_from_pexels.py..."
+        python -c "import download_video_from_pexels; print('OK')"
+        
+        echo "Testing email_extend.py..."
+        python -c "import email_extend; print('OK')"
+      shell: cmd
+
+    # 步骤 6: 运行 test_setup.py（仅检查，不决定成败）
+    - name: 🧪 运行环境测试（信息性）
+      run: |
+        python test_setup.py || echo "Note: test_setup.py returned non-zero (expected without user config)"
+      shell: cmd
+      continue-on-error: true
+
+    # 步骤 7: 输出测试总结
     - name: ✅ 测试完成
       run: |
         echo "=========================================="
