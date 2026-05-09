@@ -36,8 +36,10 @@ jobs:
     # 步骤 4: 运行环境测试脚本（CI 模式）
     - name: 🧪 运行环境测试
       run: |
-        python test_setup.py
-      shell: cmd
+        echo "CI_MODE value: $env:CI_MODE"
+        python -c "import os; print('CI_MODE in Python:', os.getenv('CI_MODE'))"
+        $env:CI_MODE='1'; python test_setup.py
+      shell: pwsh
 
     # 步骤 5: 输出测试总结
     - name: ✅ 测试完成
