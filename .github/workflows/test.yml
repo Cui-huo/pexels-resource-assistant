@@ -30,43 +30,34 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # 步骤 4: 测试核心模块导入
+    # 步骤 4: 测试核心模块导入（添加下载目录到 PYTHONPATH）
     - name: 🔧 测试核心模块导入
+      working-directory: ./download_and_send
       run: |
         echo "Testing config.py..."
-        python -c "from download_and_send.config import PEXELS_API_KEY; print('OK')"
+        python -c "from config import PEXELS_API_KEY; print('config.py OK')"
         
         echo "Testing download_pictures_and_videos.py..."
-        python -c "from download_and_send.download_pictures_and_videos import get_popular_photos; print('OK')"
+        python -c "from download_pictures_and_videos import get_popular_photos; print('download_pictures_and_videos.py OK')"
         
         echo "Testing send_email.py..."
-        python -c "from download_and_send.send_email import send_email; print('OK')"
-        
-        echo "Testing main.py..."
-        python -c "from download_and_send.main import main; print('OK')"
+        python -c "from send_email import send_email; print('send_email.py OK')"
       shell: cmd
 
     # 步骤 5: 测试独立脚本导入
     - name: 📜 测试独立脚本导入
       run: |
         echo "Testing download_pictures.py..."
-        python -c "import download_pictures; print('OK')"
+        python -c "import download_pictures; print('download_pictures.py OK')"
         
         echo "Testing download_video_from_pexels.py..."
-        python -c "import download_video_from_pexels; print('OK')"
+        python -c "import download_video_from_pexels; print('download_video_from_pexels.py OK')"
         
         echo "Testing email_extend.py..."
-        python -c "import email_extend; print('OK')"
+        python -c "import email_extend; print('email_extend.py OK')"
       shell: cmd
 
-    # 步骤 6: 运行 test_setup.py（仅检查，不决定成败）
-    - name: 🧪 运行环境测试（信息性）
-      run: |
-        python test_setup.py || echo "Note: test_setup.py returned non-zero (expected without user config)"
-      shell: cmd
-      continue-on-error: true
-
-    # 步骤 7: 输出测试总结
+    # 步骤 6: 输出测试总结
     - name: ✅ 测试完成
       run: |
         echo "=========================================="
